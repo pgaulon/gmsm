@@ -3,6 +3,7 @@ package x509
 import (
 	"bytes"
 	"crypto"
+	"hash"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
@@ -16,7 +17,9 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"time"
+
+	"github.com/pgaulon/gmsm/sm2"
+	"github.com/pgaulon/gmsm/sm3"
 )
 
 // PKCS7 Represents a PKCS7 structure
@@ -644,9 +647,6 @@ func (attrs *attributes) ForMarshaling() ([]attribute, error) {
 // AddSigner signs attributes about the content and adds certificate to payload
 func (sd *SignedData) AddSigner(cert *Certificate, pkey crypto.PrivateKey, config SignerInfoConfig) error {
 	attrs := &attributes{}
-	attrs.Add(oidAttributeContentType, sd.sd.ContentInfo.ContentType)
-	attrs.Add(oidAttributeMessageDigest, sd.messageDigest)
-	attrs.Add(oidAttributeSigningTime, time.Now())
 	for _, attr := range config.ExtraSignedAttributes {
 		attrs.Add(attr.Type, attr.Value)
 	}
@@ -654,7 +654,7 @@ func (sd *SignedData) AddSigner(cert *Certificate, pkey crypto.PrivateKey, confi
 	if err != nil {
 		return err
 	}
-	signature, err := signAttributes(finalAttrs, pkey, crypto.SHA1)
+	signature, err := signAttributes(finalAttrs, pkey, sm3.New())
 	if err != nil {
 		return err
 	}
@@ -665,9 +665,9 @@ func (sd *SignedData) AddSigner(cert *Certificate, pkey crypto.PrivateKey, confi
 	}
 
 	signer := signerInfo{
-		AuthenticatedAttributes:   finalAttrs,
-		DigestAlgorithm:           pkix.AlgorithmIdentifier{Algorithm: oidDigestAlgorithmSHA1},
-		DigestEncryptionAlgorithm: pkix.AlgorithmIdentifier{Algorithm: oidSignatureSHA1WithRSA},
+		AuthenticatedAttributes:   nil,
+		DigestAlgorithm:           pkix.AlgorithmIdentifier{Algorithm: oidSM3Hash, Parameters: asn1.NullRawValue},
+		DigestEncryptionAlgorithm: pkix.AlgorithmIdentifier{Algorithm: oidDSASM2, Parameters: asn1.NullRawValue},
 		IssuerAndSerialNumber:     ias,
 		EncryptedDigest:           signature,
 		Version:                   1,
@@ -714,17 +714,19 @@ func cert2issuerAndSerial(cert *Certificate) (issuerAndSerial, error) {
 }
 
 // signs the DER encoded form of the attributes with the private key
-func signAttributes(attrs []attribute, pkey crypto.PrivateKey, hash crypto.Hash) ([]byte, error) {
+func signAttributes(attrs []attribute, pkey crypto.PrivateKey, hash hash.Hash) ([]byte, error) {
 	attrBytes, err := marshalAttributes(attrs)
 	if err != nil {
 		return nil, err
 	}
-	h := hash.New()
+	h := sm3.New()
 	h.Write(attrBytes)
 	hashed := h.Sum(nil)
 	switch priv := pkey.(type) {
 	case *rsa.PrivateKey:
 		return rsa.SignPKCS1v15(rand.Reader, priv, crypto.SHA1, hashed)
+	case *sm2.PrivateKey:
+		return priv.Sign(rand.Reader, hashed, nil)
 	}
 	return nil, ErrPKCS7UnsupportedAlgorithm
 }
