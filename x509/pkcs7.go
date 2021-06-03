@@ -43,6 +43,7 @@ type unsignedData []byte
 var (
 	oidData                   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 1}
 	oidSignedData             = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 2}
+	oidSMData                 = asn1.ObjectIdentifier{1, 2, 156, 10197, 6, 1, 4, 2, 1}
 	oidSMSignedData           = asn1.ObjectIdentifier{1, 2, 156, 10197, 6, 1, 4, 2, 2}
 	oidEnvelopedData          = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 3}
 	oidSignedAndEnvelopedData = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 4}
@@ -51,6 +52,7 @@ var (
 	oidAttributeContentType   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 3}
 	oidAttributeMessageDigest = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 4}
 	oidAttributeSigningTime   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 5}
+	oidSM3Hash                = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 401}
 	oidSM3withSM2             = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 501}
 	oidDSASM2                 = asn1.ObjectIdentifier{1, 2, 156, 10197, 1, 301, 1}
 )
@@ -557,11 +559,12 @@ func NewSignedData(data []byte) (*SignedData, error) {
 		return nil, err
 	}
 	ci := contentInfo{
-		ContentType: oidData,
+		ContentType: oidSMData,
 		Content:     asn1.RawValue{Class: 2, Tag: 0, Bytes: content, IsCompound: true},
 	}
 	digAlg := pkix.AlgorithmIdentifier{
-		Algorithm: oidDigestAlgorithmSHA1,
+		Algorithm: oidSM3Hash,
+		Parameters: asn1.NullRawValue,
 	}
 	h := crypto.SHA1.New()
 	h.Write(data)
