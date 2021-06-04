@@ -645,20 +645,7 @@ func (attrs *attributes) ForMarshaling() ([]attribute, error) {
 }
 
 // AddSigner signs attributes about the content and adds certificate to payload
-func (sd *SignedData) AddSigner(cert *Certificate, pkey crypto.PrivateKey, config SignerInfoConfig) error {
-	attrs := &attributes{}
-	for _, attr := range config.ExtraSignedAttributes {
-		attrs.Add(attr.Type, attr.Value)
-	}
-	finalAttrs, err := attrs.ForMarshaling()
-	if err != nil {
-		return err
-	}
-	signature, err := signAttributes(finalAttrs, pkey, sm3.New())
-	if err != nil {
-		return err
-	}
-
+func (sd *SignedData) AddSigner(cert *Certificate, pkey crypto.PrivateKey, config SignerInfoConfig, signature []byte) error {
 	ias, err := cert2issuerAndSerial(cert)
 	if err != nil {
 		return err
