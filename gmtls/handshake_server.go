@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/tjfoc/gmsm/x509"
+	"github.com/pgaulon/gmsm/x509"
 )
 
 // serverHandshakeState contains details of a server handshake in progress.
