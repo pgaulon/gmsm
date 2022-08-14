@@ -562,7 +562,7 @@ func NewSignedData(data []byte) (*SignedData, error) {
 		return nil, err
 	}
 	ci := contentInfo{
-		ContentType: oidSMData,
+		ContentType: oidData,
 		Content:     asn1.RawValue{Class: 2, Tag: 0, Bytes: content, IsCompound: true},
 	}
 	digAlg := pkix.AlgorithmIdentifier{
@@ -684,7 +684,7 @@ func (sd *SignedData) Finish() ([]byte, error) {
 		return nil, err
 	}
 	outer := contentInfo{
-		ContentType: oidSMSignedData,
+		ContentType: oidSignedData,
 		Content:     asn1.RawValue{Class: 2, Tag: 0, Bytes: inner, IsCompound: true},
 	}
 	return asn1.Marshal(outer)
